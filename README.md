@@ -1,18 +1,18 @@
-# Athena.nvim
+# athena.nvim
 
 A Neovim plugin for [athena](https://github.com/haondt/athena).
 
 ### Requirements
 
-- `jq`
+- [jq](https://github.com/jqlang/jq)
 - [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim)
 
 ### Usage
 
 Lazy installation
 
-```
-return {
+```lua
+{
     "haondt/athena.nvim",
     dependencies = {
         "nvim-telescope/telescope.nvim",
