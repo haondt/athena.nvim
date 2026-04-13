@@ -24,8 +24,7 @@ end
 
 
 local function set_ft(buf, ft)
-    local bufnr = vim.api.nvim_get_current_buf()
-    local clients = vim.lsp.get_clients({ bufnr = bufnr })
+    local clients = vim.lsp.get_clients({ bufnr = buf })
     for _, client in ipairs(clients) do
         vim.lsp.buf_detach_client(0, client.id)
     end
