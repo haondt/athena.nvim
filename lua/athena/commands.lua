@@ -44,7 +44,7 @@ local function open()
         dispose = nil
     }
 
-    return ui.open(
+    ui.open(
         function(buf)
             nav.set_keymaps(buf)
             local function refresh()
@@ -73,6 +73,7 @@ local function open()
                 ui.clear_hover()
             end
         end)
+    return history_file
 end
 
 function M.setup(opts)
@@ -87,9 +88,26 @@ function M.setup(opts)
         end
     end, { nargs = '*' })
 
+    vim.api.nvim_create_user_command('AthenaToggle', function(cmd_opts)
+        if ui.is_open() then
+            ui.close()
+        else
+            open()
+        end
+    end, {})
+
     vim.api.nvim_create_user_command('AthenaResponse', function(cmd_opts)
         nav.set_mode('response')
         open()
+    end, {})
+
+    vim.api.nvim_create_user_command('AthenaHistory', function(cmd_opts)
+        history_file = open()
+        if history_file ~= nil then
+            ui.pick(history_file, function(entry)
+                nav.load_entry(entry)
+            end)
+        end
     end, {})
 end
 

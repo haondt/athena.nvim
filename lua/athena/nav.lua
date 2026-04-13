@@ -84,6 +84,10 @@ function M.load_entry(entry)
     elseif state.mode == 'response' then
         state.layer = 3
         state.trace_idx = #entry.athena_traces
+        if state.trace_idx < 1 then
+            state.trace_idx = nil
+            state.layer = 2
+        end
         state.navigable = render.response(state.entry, state.trace_idx, ui.get_buf(), ui.get_win())
     end
     set_cursor_top()

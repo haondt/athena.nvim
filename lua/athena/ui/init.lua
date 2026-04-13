@@ -1,4 +1,5 @@
 local render = require('athena.ui.render')
+local pickers = require('athena.ui.picker')
 
 local M = {}
 
@@ -87,6 +88,16 @@ end
 
 function M.is_open()
     return buf_is_valid()
+end
+
+function M.pick(history_file, on_select)
+    return pickers.history(history_file, on_select)
+end
+
+function M.close()
+    if buf_is_valid() then
+        vim.api.nvim_buf_delete(state.buf, { force = true })
+    end
 end
 
 return M

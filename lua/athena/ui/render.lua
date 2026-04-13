@@ -70,6 +70,15 @@ local function push_section(lines, highlights, title)
     table.insert(highlights, { row, 0, #title, 'AthenaSectionHeader' })
 end
 
+local function push_multiline(lines, str, highlights, hl_group)
+    for _, l in ipairs(vim.split(tostring(str), '\n', { plain = true })) do
+        table.insert(lines, l)
+        if highlights and hl_group then
+            table.insert(highlights, { #lines - 1, 0, #l, hl_group })
+        end
+    end
+end
+
 
 function M.layer1(entry, buf, win)
     local lines = {}
@@ -78,12 +87,6 @@ function M.layer1(entry, buf, win)
 
     local function push(line)
         table.insert(lines, line)
-    end
-
-    local function push_multiline(lines, str)
-        for _, l in ipairs(vim.split(tostring(str), '\n', { plain = true })) do
-            table.insert(lines, l)
-        end
     end
 
     -- warnings (omit if no warnings)
@@ -118,10 +121,7 @@ function M.layer1(entry, buf, win)
         push_section(lines, highlights, 'error')
         if entry.error and entry.error ~= vim.NIL then
             local start_row = #lines
-            push_multiline(lines, tostring(entry.error))
-            for row = start_row, #lines - 1 do
-                table.insert(highlights, { row, 0, #lines[row + 1], 'AthenaError' })
-            end
+            push_multiline(lines, tostring(entry.error), highlights, 'AthenaError')
         end
         push('')
     end
@@ -168,8 +168,9 @@ function M.layer1(entry, buf, win)
     set_lines(buf, lines)
     hl.apply_highlights(buf, highlights)
     set_ft(buf, '')
-    winbar.set(win, winbar.module(entry))
-
+    if win ~= nil then
+        winbar.set(win, winbar.module(entry))
+    end
     return navigable
 end
 
@@ -192,11 +193,11 @@ function M.layer2(entry, trace_idx, buf, win)
     if #trace.warnings > 0 then
         push_section(lines, highlights, 'warnings')
         for _, w in ipairs(trace.warnings) do
-            push(w)
-            table.insert(highlights, { #lines - 1, 0, #w, 'AthenaWarning' })
+            push_multiline(lines, w, highlights, 'AthenaWarning')
         end
         push('')
     end
+
 
     push_section(lines, highlights, 'request')
     local content_type_kv = { 'content_type', trace.request.content_type }
@@ -244,15 +245,23 @@ function M.layer2(entry, trace_idx, buf, win)
     navigable[#lines] = { kind = 'body', source = 'response' }
     hl.nav(lines, highlights)
 
+    for i, line in ipairs(lines) do
+        if line:find('\n') then
+            vim.notify('newline in line ' .. i .. ': ' .. vim.inspect(line), vim.log.levels.ERROR)
+        end
+    end
+    set_lines(buf, lines)
+
     set_lines(buf, lines)
     hl.apply_highlights(buf, highlights)
     set_ft(buf, '')
-    winbar.set(win,
-        winbar.module(entry)
-        .. winbar.sep()
-        .. winbar.crumb('traces')
-        .. winbar.trace_idx(trace_idx))
-
+    if win ~= nil then
+        winbar.set(win,
+            winbar.module(entry)
+            .. winbar.sep()
+            .. winbar.crumb('traces')
+            .. winbar.trace_idx(trace_idx))
+    end
     return navigable
 end
 
@@ -290,7 +299,17 @@ function M.layer3(entry, trace_idx, source, buf, win)
 end
 
 function M.response(entry, trace_idx, buf, win)
+    if trace_idx == nil then
+        set_lines(buf, {}, false)
+        hl.apply_highlights(buf, {})
+        set_ft(buf, '')
+
+        winbar.set(win,
+            winbar.crumb('No trace available'))
+        return {}
+    end
     local trace = entry.athena_traces[trace_idx]
+
     local text = trace.response.text or ''
     local ft = util.content_type_to_ft(trace.response.content_type)
 
