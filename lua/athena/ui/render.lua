@@ -158,7 +158,7 @@ function M.layer1(entry, buf, win)
         push(line2)
         local row2 = #lines - 1
         table.insert(highlights, { row2, 0, #sc_str, hl.status(sc) })
-        table.insert(highlights, { row2, #sc_str + 1, #sc_str + 1 + #reason, 'AthenaStatusReason' })
+        table.insert(highlights, { row2, #sc_str + 1, #sc_str + 1 + #reason, hl.status(sc) })
 
         -- both rows map to same action, each knows about the other
         navigable[row1 + 1] = { kind = 'trace', idx = i, peer = row2 + 1 }
@@ -285,6 +285,46 @@ function M.layer3(entry, trace_idx, source, buf, win)
         .. winbar.sep()
         .. winbar.crumb('body')
         .. winbar.ft(ft_desc))
+
+    return {}
+end
+
+function M.response(entry, trace_idx, buf, win)
+    local trace = entry.athena_traces[trace_idx]
+    local text = trace.response.text or ''
+    local ft = util.content_type_to_ft(trace.response.content_type)
+
+    if ft == 'json' then
+        text = util.pretty_json(text)
+    end
+
+    local lines = vim.split(text, '\n', { plain = true })
+    if lines[#lines] == '' then
+        table.remove(lines)
+    end
+
+    set_lines(buf, lines, true)
+    hl.apply_highlights(buf, {})
+    set_ft(buf, ft)
+    local ft_desc = util.content_type_to_description(trace.response.content_type)
+
+    local sc = trace.response.status_code
+    local reason = trace.response.reason
+    local ms = util.elapsed_ms(trace)
+    local size = util.format_bytes(#(trace.response.text or ''))
+
+    local sc_str = tostring(sc)
+
+    local line2 = sc_str .. ' ' .. reason .. ' ' .. ms .. ' ' .. size
+
+    winbar.set(win,
+        winbar.crumb(sc_str, hl.status(sc))
+        .. winbar.crumb(' ')
+        .. winbar.crumb(reason, hl.status(sc))
+        .. winbar.crumb(' ')
+        .. winbar.crumb(ms)
+        .. winbar.crumb(' ')
+        .. winbar.crumb(size))
 
     return {}
 end

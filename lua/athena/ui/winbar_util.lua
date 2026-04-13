@@ -31,8 +31,11 @@ function M.sep()
     return '%#AthenaNav# / '
 end
 
-function M.crumb(text)
-    return '%#AthenaKey#' .. text
+function M.crumb(text, hl)
+    if not hl then
+        hl = 'AthenaKey'
+    end
+    return '%#' .. hl .. '#' .. text
 end
 
 function M.trace(trace)
@@ -43,7 +46,6 @@ end
 function M.trace_idx(trace_idx)
     return '%#AthenaDimmed#[' .. trace_idx .. ']'
 end
-
 function M.ft(ft)
     if ft then
         return '%#AthenaDimmed#[' .. ft .. ']'

@@ -2,7 +2,7 @@ local M = {}
 
 function M.elapsed_ms(trace)
     local s = trace['end'] - trace.start
-    return math.floor(s * 1000) .. 'ms'
+    return math.floor(s * 1000) .. ' ms'
 end
 
 function M.content_type_to_ft(ct)

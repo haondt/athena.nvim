@@ -44,19 +44,20 @@ local function open()
         dispose = nil
     }
 
-    ui.open(
+    return ui.open(
         function(buf)
             nav.set_keymaps(buf)
-            handle.dispose = fs.watch(history_file, function()
-                vim.schedule(function()
-                    local entry = get_last_entry(history_file)
+            local function refresh()
+                local entry = get_last_entry(history_file)
+                if entry then
                     nav.load_entry(entry)
-                end)
-            end)
-            local entry = get_last_entry(history_file)
-            if entry then
-                nav.load_entry(entry)
+                end
             end
+
+            handle.dispose = fs.watch(history_file, function()
+                vim.schedule(refresh)
+            end)
+            refresh()
         end,
         function()
             if handle.dispose then
@@ -79,22 +80,17 @@ function M.setup(opts)
         local args = cmd_opts.fargs
 
         if #args == 0 then
+            nav.set_mode('default')
             open()
-        elseif args[1] == 'run' then
-            local rest = vim.list_slice(args, 2)
-            local cmd = vim.list_extend({ 'athena', 'run', '--plain' }, rest)
-            vim.fn.jobstart(cmd, {
-                on_exit = function()
-                    local entry = get_last_entry()
-                    if entry then
-                        open_and_load(entry)
-                    end
-                end
-            })
         else
             vim.notify('athena: unknown subcommand: ' .. args[1], vim.log.levels.ERROR)
         end
     end, { nargs = '*' })
+
+    vim.api.nvim_create_user_command('AthenaResponse', function(cmd_opts)
+        nav.set_mode('response')
+        open()
+    end, {})
 end
 
 return M

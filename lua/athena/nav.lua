@@ -10,6 +10,7 @@ local state = {
     trace_idx = nil,
     cursor_stack = {},
     navigable = {},
+    mode = 'default'
 }
 
 local function save_cursor()
@@ -75,11 +76,25 @@ end
 
 function M.load_entry(entry)
     state.entry = entry
-    state.layer = 1
-    state.trace_idx = nil
     state.cursor_stack = {}
-    state.navigable = render.layer1(state.entry, ui.get_buf(), ui.get_win())
+    if state.mode == 'default' then
+        state.layer = 1
+        state.trace_idx = nil
+        state.navigable = render.layer1(state.entry, ui.get_buf(), ui.get_win())
+    elseif state.mode == 'response' then
+        state.layer = 3
+        state.trace_idx = #entry.athena_traces
+        state.navigable = render.response(state.entry, state.trace_idx, ui.get_buf(), ui.get_win())
+    end
     set_cursor_top()
+end
+
+function M.set_mode(mode)
+    state.mode = mode
+end
+
+function M.get_mode()
+    return state.mode
 end
 
 function M.set_keymaps(buf)
