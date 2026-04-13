@@ -30,7 +30,7 @@ function M.apply_hover(rows)
     end
 end
 
-function M.open(on_create, on_cursor_moved)
+function M.open(on_create, on_destroy, on_cursor_moved)
     if buf_is_valid() then return end
 
     local buf = vim.api.nvim_create_buf(false, true)
@@ -57,6 +57,18 @@ function M.open(on_create, on_cursor_moved)
             local current_win = vim.api.nvim_get_current_win()
             if current_win ~= state.win then return end
             on_cursor_moved(state.win)
+        end,
+    })
+
+    vim.api.nvim_create_autocmd({ 'BufWipeout', 'BufDelete' }, {
+        buffer = buf,
+        once = true,
+        callback = function()
+            if on_destroy then
+                on_destroy(buf)
+            end
+            state.buf = nil
+            state.win = nil
         end,
     })
 

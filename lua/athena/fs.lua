@@ -16,4 +16,25 @@ function M.find_history(root)
     return root .. '/.history'
 end
 
+function M.watch(file, callback)
+    local handle = vim.uv.new_fs_event()
+    vim.uv.fs_event_start(handle, file, {}, function(err, filename, events)
+        if err then
+            vim.notify("Watch error: " .. err, vim.log.levels.ERROR)
+            return
+        end
+
+        callback(filename, events)
+    end)
+
+    local disposed = false
+    return function()
+        if disposed then
+            return
+        end
+        vim.uv.fs_event_stop(handle)
+        disposed = true
+    end
+end
+
 return M

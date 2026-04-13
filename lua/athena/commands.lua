@@ -4,10 +4,17 @@ local fs = require('athena.fs')
 
 local M = {}
 
-local function get_last_entry()
+local function get_history_file()
     local history_file = fs.find_history()
     if not history_file then
         vim.notify('athena: no .athena project found', vim.log.levels.ERROR)
+        return nil
+    end
+    return history_file
+end
+
+local function get_last_entry(history_file)
+    if not history_file then
         return nil
     end
 
@@ -27,9 +34,34 @@ local function get_last_entry()
     return entry
 end
 
-local function open_and_load(entry)
-    ui.open(function(buf)
+local function open()
+    local history_file = get_history_file()
+    if not history_file then
+        return nil
+    end
+
+    local handle = {
+        dispose = nil
+    }
+
+    ui.open(
+        function(buf)
             nav.set_keymaps(buf)
+            handle.dispose = fs.watch(history_file, function()
+                vim.schedule(function()
+                    local entry = get_last_entry(history_file)
+                    nav.load_entry(entry)
+                end)
+            end)
+            local entry = get_last_entry(history_file)
+            if entry then
+                nav.load_entry(entry)
+            end
+        end,
+        function()
+            if handle.dispose then
+                handle.dispose()
+            end
         end,
         function(win)
             local row = vim.api.nvim_win_get_cursor(win)[1]
@@ -40,7 +72,6 @@ local function open_and_load(entry)
                 ui.clear_hover()
             end
         end)
-    nav.load_entry(entry)
 end
 
 function M.setup(opts)
@@ -48,10 +79,7 @@ function M.setup(opts)
         local args = cmd_opts.fargs
 
         if #args == 0 then
-            local entry = get_last_entry()
-            if entry then
-                open_and_load(entry)
-            end
+            open()
         elseif args[1] == 'run' then
             local rest = vim.list_slice(args, 2)
             local cmd = vim.list_extend({ 'athena', 'run', '--plain' }, rest)
